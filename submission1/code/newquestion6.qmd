@@ -1,0 +1,51 @@
+```{r}
+library(tidyverse)
+library(modelsummary)
+library(kableExtra)
+
+df <- df %>%
+  mutate(
+    log_sales = log(sales_per_capita),
+    log_cost = log(price_cpi),
+    tax_cpi = tax_state * (230 / index),
+    total_tax_cpi = tax_dollar * (230 / index),
+    log_total_tax = log(total_tax_cpi)
+  )
+
+# OLS model (1970–1990)
+ols_1 <- lm(log_sales ~ log_cost, data = df %>% filter(Year >= 1970 & Year <= 1990))
+# IV model (1970–1990)
+first_stage_1 <- lm(log_cost ~ log_total_tax, data = df %>% filter(Year >= 1970 & Year <= 1990))
+iv_1 <- lm(log_sales ~ fitted(first_stage_1), data = df %>% filter(Year >= 1970 & Year <= 1990))
+
+# OLS model (1991–2015)
+ols_2 <- lm(log_sales ~ log_cost, data = df %>% filter(Year >= 1991 & Year <= 2015))
+# IV model (1991–2015)
+first_stage_2 <- lm(log_cost ~ log_total_tax, data = df %>% filter(Year >= 1991 & Year <= 2015))
+iv_2 <- lm(log_sales ~ fitted(first_stage_2), data = df %>% filter(Year >= 1991 & Year <= 2015))
+
+# Format large numbers
+f <- function(x) formatC(x, digits = 0, big.mark = ",")
+
+# Create LaTeX-friendly table
+modelsummary(
+  list(
+    "Estimates" = list("OLS (1970–1990)" = ols_1, "IV (1970–1990)" = iv_1, "OLS (1991–2015)" = ols_2, "IV (1991–2015)" = iv_2),
+    "Reduced Form" = list("First Stage (1970–1990)" = first_stage_1, "First Stage (1991–2015)" = first_stage_2)
+  ),
+  shape = "rbind",
+  coef_map = c(
+    'log_cost' = "Log Price",
+    'fitted(first_stage_1)' = "Log Price",
+    'fitted(first_stage_2)' = "Log Price",
+    'log_total_tax' = "Log Tax"
+  ),
+  gof_map = list(
+    list("raw" = "nobs", "clean" = "N", "fmt" = f),
+    list("raw" = "r.squared", "clean" = "R²", "fmt" = 2)
+  ),
+  output = "latex"
+) %>%
+  kable_styling(latex_options = c("hold_position", "striped")) %>%
+  add_header_above(c(" " = 1, "1970–1990" = 2, "1991–2015" = 2))
+```

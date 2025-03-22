@@ -1,0 +1,5 @@
+first_stage_1970_1990 <- lm(log_cost ~ log_total_tax, data = (df %>% filter(Year >= 1970& Year <= 1990)))
+print(summary(first_stage_1991_2015))
+price_hat_1970_1990<- predict(first_stage_1970_1990)
+iv_model_1970_1990<- lm(log_sales ~ price_hat_1970_1990, data = (df %>% filter(Year >= 1970& Year <= 1990)))
+print(summary(iv_model_1970_1990))
